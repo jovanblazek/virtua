@@ -358,6 +358,7 @@ export type WindowScroller = {
   _observe(containerElement: HTMLElement): void;
   _dispose(): void;
   _fixScrollJump: () => void;
+  _scrollToIndex: (index: number, opts?: ScrollToIndexOpts) => void;
 };
 
 /**
@@ -427,6 +428,56 @@ export const createWindowScroller = (
     },
     _fixScrollJump: () => {
       scrollObserver && scrollObserver._fixScrollJump();
+    },
+    _scrollToIndex: async (index: number, opts: ScrollToIndexOpts = {}) => {
+      const scrollOffsetKey = isHorizontal ? "scrollX" : "scrollY";
+      const align = opts.align || 'start';
+      const smooth = opts.smooth;
+      const offset = opts.offset || 0;
+
+      index = clamp(index, 0, store._getItemsLength() - 1);
+
+      const itemOffset = store._getItemOffset(index);
+      const viewportSize = store._getViewportSize();
+      const itemSize = store._getItemSize(index);
+
+      let targetOffset = itemOffset + offset;
+
+      if (align === "end") {
+        targetOffset += itemSize - viewportSize;
+      } else if (align === "center") {
+        targetOffset += (itemSize - viewportSize) / 2;
+      } else if (align === "nearest") {
+        const scrollOffset = store._getScrollOffset();
+        if (itemOffset < scrollOffset) {
+          targetOffset = itemOffset + offset;
+        } else if (itemOffset + itemSize > scrollOffset + viewportSize) {
+          targetOffset = itemOffset + itemSize - viewportSize + offset;
+        } else {
+          // already completely visible
+          return;
+        }
+      }
+
+      store._update(ACTION_BEFORE_MANUAL_SMOOTH_SCROLL, targetOffset);
+
+      const finalOffset = normalizeOffset(targetOffset, isHorizontal);
+      if (smooth && isSmoothScrollSupported()) {
+        window.scrollTo({
+          [isHorizontal ? "left" : "top"]: finalOffset,
+          behavior: "smooth"
+        });
+      } else {
+        window.scrollTo({
+          [isHorizontal ? "left" : "top"]: finalOffset
+        });
+      }
+
+      await new Promise(resolve => {
+        window.requestAnimationFrame(resolve);
+      });
+
+      store._update(ACTION_MANUAL_SCROLL);
     },
   };
 };
