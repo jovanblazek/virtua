@@ -13,6 +13,7 @@ import {
   createVirtualStore,
   SCROLL_IDLE,
   UPDATE_SCROLL_END_EVENT,
+  VirtualStore,
 } from "../core/store";
 import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 import { createWindowScroller } from "../core/scroller";
@@ -26,7 +27,14 @@ import { ListItem } from "./ListItem";
 import { flushSync } from "react-dom";
 import { useRerender } from "./useRerender";
 import { useChildren } from "./useChildren";
-import { NULL } from "../core/utils";
+import { max, NULL } from "../core/utils";
+
+/**
+ * @internal
+ */
+export const getScrollSize = (store: VirtualStore): number => {
+  return max(store._getTotalSize(), store._getViewportSize());
+};
 
 /**
  * Methods of {@link WindowVirtualizer}.
@@ -36,12 +44,17 @@ export interface WindowVirtualizerHandle {
    * Get current {@link CacheSnapshot}.
    */
   readonly cache: CacheSnapshot;
-    /**
+  /**
    * Scroll to the item specified by index.
    * @param index index of item
    * @param opts options
    */
-    scrollToIndex(index: number, opts?: ScrollToIndexOpts): void;
+  scrollToIndex(index: number, opts?: ScrollToIndexOpts): void;
+
+  /**
+   * Get current scrollHeight or scrollWidth.
+   */
+  readonly scrollSize: number;
 }
 
 /**
@@ -230,7 +243,10 @@ export const WindowVirtualizer = forwardRef<
         get cache() {
           return store._getCacheSnapshot();
         },
-        scrollToIndex: scroller._scrollToIndex
+        scrollToIndex: scroller._scrollToIndex,
+        get scrollSize() {
+          return getScrollSize(store);
+        },
       }),
       []
     );
@@ -273,8 +289,7 @@ export const WindowVirtualizer = forwardRef<
           width: isHorizontal ? totalSize : "100%",
           height: isHorizontal ? "100%" : totalSize,
           pointerEvents: scrollDirection !== SCROLL_IDLE ? "none" : "auto",
-        }}
-      >
+        }}>
         {items}
       </Element>
     );

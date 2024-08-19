@@ -430,8 +430,8 @@ export const createWindowScroller = (
       scrollObserver && scrollObserver._fixScrollJump();
     },
     _scrollToIndex: async (index: number, opts: ScrollToIndexOpts = {}) => {
-      const scrollOffsetKey = isHorizontal ? "scrollX" : "scrollY";
-      const align = opts.align || 'start';
+      // const scrollOffsetKey = isHorizontal ? "scrollX" : "scrollY";
+      const align = opts.align || "start";
       const smooth = opts.smooth;
       const offset = opts.offset || 0;
 
@@ -465,15 +465,15 @@ export const createWindowScroller = (
       if (smooth && isSmoothScrollSupported()) {
         window.scrollTo({
           [isHorizontal ? "left" : "top"]: finalOffset,
-          behavior: "smooth"
+          behavior: "smooth",
         });
       } else {
         window.scrollTo({
-          [isHorizontal ? "left" : "top"]: finalOffset
+          [isHorizontal ? "left" : "top"]: finalOffset,
         });
       }
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         window.requestAnimationFrame(resolve);
       });
 
